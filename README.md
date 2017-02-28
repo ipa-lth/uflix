@@ -1,5 +1,6 @@
-# uflix
+# WIP: Highly borrowed by master repo, highly modified for my personal needs.
 
+# uflix
 
 ![image](images/header.png)
 
@@ -20,6 +21,8 @@ uflix assumes a webserver is running on the computer that has all the videos. Fo
 4. it builds a "master" webpage from which you can find and navigate to all your files -- in the browser!
 
 ## installation
+Install bottle
+ $ sudo pip install bottle
 
 ## usage
 
@@ -28,6 +31,15 @@ uflix-convert
 ```
 
 to convert other media files to HTML5-compatible files. 
+
+```
+python server.py
+```
+
+to start a very simple webserver
+
+
+ http://localhost:8080/SampleVideo.mp4
 
 
 ## Roadmap
