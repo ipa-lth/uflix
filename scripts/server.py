@@ -1,40 +1,49 @@
 #!/usr/bin/env python
 
-from bottle import route, run, template
-from bottle import static_file
+from bottle import route, run, template, static_file, request
+from os import walk
 
-from os import listdir
-from os.path import isfile, join
+#_video_folder = '../videos'
+_video_folder = '.'
 
-@route('/hello/<name>')
+@route('/')
+def get_files():
+    f = []
+    for (dirpath, dirnames, filenames) in walk(_video_folder):
+        f.extend(['{}?path={}'.format(i, dirpath) for i in filenames])
+
+    result='<h1>All available files in folder</h1><br>'
+    for file1 in f:
+        result +=  '<a href="{}">{}</a><br>'.format(file1, file1.split('?')[0])
+    return result
+
+@route('/<name>')
 def index(name):
-    return template('<b>Hello {{name}}</b>!', name=name)
+    path = request.query.path
+    return template('\
+        <h3>{{name}}</h3><br>\
+        <video width="800" height="600" controls>\
+          <source src="vid/{{name}}?path={{path}}" type=\'video/mp4\'>\
+          <source src="vid/{{name}}?path={{path}}" type=\'video/ogg\'>\
+          <source src="vid/{{name}}?path={{path}}" type=\'video/webm\'>\
+          Your browser does not support the video tag.\
+        </video> ',
+    name=name,
+    path=path)
 
+@route('/vid/<filename:path>')
+def send_video(filename):
+    path = request.query.path
+    return static_file(filename, root=path)
+
+# Examples
 @route('/images/<filename:re:.*\.png>')
 def send_image(filename):
     return static_file(filename, root='images', mimetype='image/png')
 
-@route('/<name>')
-def index(name):
-    return template('\
-        <h3>{{name}}</h3><br>\
-        <video width="800" height="600" controls>\
-          <source src="videos/{{name}}" type=\'video/mp4\'>\
-        Your browser does not support the video tag.\
-        </video> ',
-    name=name)
-
-@route('/videos/<filename:re:.*\.mp4>')
-def send_video(filename):
-    return static_file(filename, root='videos', mimetype='video/mp4')
-
-@route('/files')
-def get_files():
-    onlyfiles = [f for f in listdir('videos') if isfile(join('videos', f))]
-    result='<h1>All available files in folder</h1><br>'
-    for file1 in onlyfiles:
-        result +=  '<a href="{}">{}</a><br>'.format(file1, file1)
-    return result
+@route('/hello/<name>')
+def hello(name):
+    return template('<b>Hello {{name}}</b>!', name=name)
 
 run(host='0.0.0.0', port=8080, debug=True)
 #run(host='localhost', port=8080, debug=True)
