@@ -10,8 +10,13 @@ _video_folder = '.'
 def get_files():
     f = []
     for (dirpath, dirnames, filenames) in walk(_video_folder):
-        f.extend(['{}?path={}'.format(i, dirpath) for i in filenames])
+        some_filenames = [ file for file in filenames if file.endswith( 
+            ('.mp4','.ogg', '.mkv', '.webm')
+        ) ]
+        f.extend(['{}?path={}'.format(i, dirpath) for i in some_filenames])
 
+
+    
     result='<h1>All available files in folder</h1><br>'
     for file1 in f:
         result +=  '<a href="{}">{}</a><br>'.format(file1, file1.split('?')[0])
