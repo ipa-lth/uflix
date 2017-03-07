@@ -3,7 +3,6 @@
 from bottle import route, run, template, static_file, request
 from os import walk
 
-#_video_folder = '../videos'
 _video_folder = '.'
 
 @route('/')
@@ -14,10 +13,8 @@ def get_files():
             ('.mp4','.ogg', '.mkv', '.webm')
         ) ]
         f.extend(['{}?path={}'.format(i, dirpath) for i in some_filenames])
-
-
     
-    result='<h1>All available files in folder</h1><br>'
+    result='<h1>All available files</h1><br>'
     for file1 in f:
         result +=  '<a href="{}">{}</a><br>'.format(file1, file1.split('?')[0])
     return result
