@@ -12,10 +12,14 @@ _video_folder = '.'
 _ffmpeg_folder = 'h:\\'
 
 def gethtml(title, content, refresh=None, redirect=None):
-    ans = '<html>' + \
-            '<head>' + \
+    ans = '<html> \
+            <head>' +\
               '<title>{}</title>'.format(title) +\
-              '<link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">'
+              '<link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">\
+              <!-- jQuery (necessary for Bootstraps JavaScript plugins) --> \
+              <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script> \
+              <!-- Include all compiled plugins (below), or include individual files as needed --> \
+              <script src="js/bootstrap.min.js"></script>'
     if refresh:
         ans += '<meta http-equiv="refresh" content="{};'.format(refresh)
         if redirect:
@@ -25,10 +29,6 @@ def gethtml(title, content, refresh=None, redirect=None):
     ans +=  '</head>' + \
             '<body>' + \
             '{}'.format(content) + \
-            '<!-- jQuery (necessary for Bootstraps JavaScript plugins) -->' +\
-            '<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>' +\
-            '<!-- Include all compiled plugins (below), or include individual files as needed -->' +\
-            '<script src="js/bootstrap.min.js"></script>'+\
             '</body>' + \
         '</html>'
     return ans
@@ -52,30 +52,99 @@ def overview():
 
 @route('/all')
 def get_files():
+    result='<h1>All available files</h1><br>'+\
+           '<div class="vids">\
+                    <ul class="media-list">'
     f = []
     for (dirpath, dirnames, filenames) in walk(_video_folder):
-        webvideo_files = [file for file in filenames if file.endswith(
-            ('.mp4','.ogg', '.mkv', '.webm', '.avi')
+        webvideo_files = [file for file in filenames if (file.endswith(
+            ('.mp4','.ogg', '.mkv', '.webm')
+        ) and
+            not file.startswith("_")
         )]
-        f.extend(['{}?path={}'.format(i, dirpath) for i in webvideo_files])
-#        for i in webvideo_files:
-#            if i.endswith('.avi'):
-#                f.extend(['{}?path={}?convert=1'.format(i, dirpath)])
-#            else:
-#                f.extend(['{}?path={}?convert=0'.format(i, dirpath)])
+        webvideo_links = ['{}?path={}'.format(i, dirpath) for i in webvideo_files]
 
-    result='<h1>All available files</h1><br>'
-    for file in f:
-        if file.split('?')[0].endswith('.avi'):
-            if not ("_{}.mp4?{}".format(file.split('?')[0], file.split('?')[1]) in f):
-                if not ("{}.mp4?{}".format(file.split('?')[0], file.split('?')[1])in f):
-                    result += '<a href="/convert/{}">{}</a><br>'.format(file, file.split('?')[0])
-        else:
-            if not file.startswith("_"):
-                result +=  '<a href="{}">{}</a><br>'.format(file, file.split('?')[0])
+        avi_files = [file for file in filenames if file.endswith('.avi')]
+        avi_links = []
+        for avi in avi_files:
+            if not "{}.mp4".format(avi) in webvideo_files:
+                avi_links.extend(['/convert/{}?path={}'.format(avi, dirpath)])
+            else:
+                avi_files.remove(avi)
+
+        # create html here
+        if len(webvideo_files) != 0 and len(avi_files) != 0:
+            result += '<li class="media">\
+                            <a class="pull-left" href="#"> \
+                                <span class="glyphicon glyphicon-folder-open" \
+                                      style="width: 64px; height: 64px;" \
+                                      aria-hidden="true">\
+                                </span>\
+                                <!--img class="media-object" alt="[[img alt tag]]" style="width: 20px; height: 20px;" src="[[img url]]" /-->\
+                            </a>\
+                            <div class="media-body">'+\
+                                '<h4 class="media-heading">{}</h4>'.format(dirpath)
+
+            # Nested media object
+            for vid, link in zip(webvideo_files, webvideo_links):
+                result +=   '<div class="media">\
+                                  <a class="pull-left pull-middle" href="{}">'.format(link) +\
+                                      '<span class="glyphicon glyphicon-play" \
+                                            style="width: 64px; height: 64px;" \
+                                            aria-hidden="true">\
+                                      </span>\
+                                      <!--img class="media-object" alt="[[img alt tag]]" style="width: 64px; height: 64px;" src="[[img url]]" /-->\
+                                  </a>\
+                                  <div class="media-body">'+\
+                                  '<h4 class="media-heading">{}</h4>'.format(vid)+\
+                                  '</div>\
+                              </div>'
+
+            for avi, link in zip(avi_files, avi_links):
+                result +=   '<div class="media">\
+                                  <a class="pull-left pull-middle" href="{}">'.format(link) +\
+                                      '<span class="glyphicon glyphicon-record" \
+                                            style="width: 64px; height: 64px;" \
+                                            aria-hidden="true">\
+                                      </span>\
+                                      <!--img class="media-object" alt="[[img alt tag]]" style="width: 64px; height: 64px;" src="[[img url]]" /-->\
+                                  </a>\
+                                  <div class="media-body">'+\
+                                  '<h4 class="media-heading">{}</h4>'.format(avi)+\
+                                  '</div>\
+                              </div>'
+            result +=     '</div>\
+                     </li>'
+
     return gethtml("All files",
                    result,
-                   10)
+                   30)
+@route('/test')
+def medialist():
+    content = '<div class="vids">\
+                    <ul class="media-list">\
+                        <li class="media">\
+                            <a class="pull-left" href="#"> \
+                                <span class="glyphicon glyphicon-play" \
+                                      style="width: 64px; height: 64px;" \
+                                      aria-hidden="true">\
+                                </span>\
+                                <!--img class="media-object" alt="[[img alt tag]]" style="width: 64px; height: 64px;" src="[[img url]]" /-->\
+                            </a>\
+                            <div class="media-body">\
+                                <h4 class="media-heading">Media heading</h4>\
+                                <p>[[media caption]]</p>\
+                                    <!-- Nested media object -->\
+                                    <div class="media"><a class="pull-left" href="#"> <img class="media-object" alt="[[img alt tag]]" style="width: 64px; height: 64px;" src="[[img url]]" /> </a>\
+                                        <div class="media-body">\
+                                        <h4 class="media-heading">Nested media heading</h4>\
+                                        [[media caption]]</div>\
+                                    </div>\
+                            </div>\
+                        </li>\
+                    </ul>\
+                </div>'
+    return gethtml("", content)
 
 @route('/<name>')
 def index(name):
@@ -123,7 +192,7 @@ def convert(name):
                    '<h3>Converting {} @ {}<br>Returning in 2 sec</h3>'.format(name, path),
                    2,
                    '/all')
-    
+
 #            '<html>' + \
 #                '<head>' + \
 #                  '<title>Convertion</title>' + \
@@ -133,7 +202,7 @@ def convert(name):
 #                '<h3>Converting {} @ {}<br>Returning in 2 sec</h3>'.format(name, path) + \
 #                '</body>' + \
 #            '</html>'
-    
+
 # Examples
 @route('/images/<filename:re:.*\.png>')
 def send_image(filename):
