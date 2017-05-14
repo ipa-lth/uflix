@@ -68,7 +68,7 @@ def get_files():
                 avi_files.remove(avi)
 
         # create html here
-        if len(webvideo_files) != 0 and len(avi_files) != 0:
+        if (len(webvideo_files) + len(avi_files)) != 0:
             m = hashlib.md5()
             m.update(dirpath)
             hashfrompath = m.hexdigest()
@@ -315,5 +315,6 @@ def no_shutdown():
     subprocess.call(["shutdown", "/a"])
     return "<h1>Aborting shutdown!</h1>"
 
+print 'starting in:', os.getcwd()
 run(host='0.0.0.0', port=8080, debug=False)
 #run(host='localhost', port=8080, debug=True)
