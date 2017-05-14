@@ -6,6 +6,7 @@ from os import walk
 
 from thread import start_new_thread
 import subprocess
+import hashlib
 
 _video_folder = '.'
 
@@ -19,13 +20,14 @@ def gethtml(title, content, refresh=None, redirect=None):
               <!-- jQuery (necessary for Bootstraps JavaScript plugins) --> \
               <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script> \
               <!-- Include all compiled plugins (below), or include individual files as needed --> \
-              <script src="js/bootstrap.min.js"></script>'
+              <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>'
     if refresh:
         ans += '<meta http-equiv="refresh" content="{};'.format(refresh)
         if redirect:
              ans += 'url={}" />'.format(redirect)
         else:
             ans += '"/>'
+    ans += '<meta name="viewport" content="width=device-width, initial-scale=1">'
     ans +=  '</head>' + \
             '<body>' + \
             '{}'.format(content) + \
@@ -35,27 +37,69 @@ def gethtml(title, content, refresh=None, redirect=None):
 
 @route('/')
 def overview():
-    nicer_content = '<h1>Overview</h1><br>'+\
-              '<div class="list-group">'+\
-              '<a href="{}" class="list-group-item>{}</a>'.format("/all", "See all videos") +\
-              '<a href="{}" class="list-group-item>{}</a>'.format("/shutdown", "Shut down server") +\
-              '<a href="{}" class="list-group-item>{}</a>'.format("/shutdown/abort", "Abort shutdown")+\
-              '</div>'
+    content =  '<h1>Overview</h1><br>'+\
+                '<div class="list-group">\
+                  <a href="/all" class="list-group-item active">See all videos</a>\
+                  <a href="/shutdown" class="list-group-item">Shut down server</a>\
+                  <a href="/shutdown/abort" class="list-group-item">Abort shutdown</a>\
+                </div>'
 
-    content = '<h1>Overview</h1><br>'+\
-              '<a href="{}">{}</a><br>'.format("/all", "See all videos") +\
-              '<a href="{}">{}</a><br>'.format("/shutdown", "Shut down server") +\
-              '<a href="{}">{}</a><br>'.format("/shutdown/abort", "Abort shutdown")
-    return gethtml("Overview",
-                   content)
-
+    return gethtml("Overview", content)
 
 @route('/all')
+def get_files():
+    content =   '<h1>All Videos</h1><br>'+\
+                    '<div class="panel-group">'
+
+    for (dirpath, dirnames, filenames) in walk(_video_folder):
+        webvideo_files = [file for file in filenames if (file.endswith(
+            ('.mp4','.ogg', '.mkv', '.webm')
+        ) and
+            not file.startswith("_")
+        )]
+        webvideo_links = ['{}?path={}'.format(i, dirpath) for i in webvideo_files]
+
+        avi_files = [file for file in filenames if file.endswith('.avi')]
+        avi_links = []
+        for avi in avi_files:
+            if not "{}.mp4".format(avi) in webvideo_files:
+                avi_links.extend(['/convert/{}?path={}'.format(avi, dirpath)])
+            else:
+                avi_files.remove(avi)
+
+        # create html here
+        if len(webvideo_files) != 0 and len(avi_files) != 0:
+            m = hashlib.md5()
+            m.update(dirpath)
+            hashfrompath = m.hexdigest()
+            content +=  '<div class="panel panel-default">\
+                            <a class="list-group-item" data-toggle="collapse" href="#{}">'.format(hashfrompath)+\
+                                '<span class="badge">{}</span>'.format(len(webvideo_files) + len(avi_files))+\
+                                "{}".format(dirpath)+\
+                            '</a>'+\
+                            '<div class="panel-collapse collapse" id="{}">'.format(hashfrompath)+\
+                                '<div class="panel-body">'
+            for vid, link in zip(webvideo_files, webvideo_links):
+                content += '<a href="{}" class="list-group-item active">{}</a>'.format(link, vid)
+
+            for avi, link in zip(avi_files, avi_links):
+                content += '<a href="{}" class="list-group-item">{}</a>'.format(link, avi)
+
+            content +=          '</div>\
+                            </div>\
+                        </div>\
+                    </div>\
+                </div>'
+    return gethtml("All files",
+               content,
+               30)
+
+@route('/all-medialist')
 def get_files():
     result='<h1>All available files</h1><br>'+\
            '<div class="vids">\
                     <ul class="media-list">'
-    f = []
+
     for (dirpath, dirnames, filenames) in walk(_video_folder):
         webvideo_files = [file for file in filenames if (file.endswith(
             ('.mp4','.ogg', '.mkv', '.webm')
@@ -204,6 +248,54 @@ def convert(name):
 #            '</html>'
 
 # Examples
+@route('/list')
+def list():
+    content = '<div class="list-group">\
+                  <a href="#" class="list-group-item">\
+                    Cras justo odio\
+                  </a>\
+                  <a href="#" class="list-group-item">Dapibus ac facilisis in</a>\
+                  <a href="#" class="list-group-item">Morbi leo risus</a>\
+                  <a href="#" class="list-group-item">Porta ac consectetur ac</a>\
+                  <a href="#" class="list-group-item">Vestibulum at eros</a>\
+                </div>'
+    return gethtml('list', content)
+
+@route('/panelgroup')
+def panel():
+    content =   '<h1>Bootstrap Panel with Collapsable Sub-List Group</h1>\
+                    <div class="panel-group">\
+                        \
+                        <div class="panel panel-default">\
+                            <a class="list-group-item" data-toggle="collapse" href="#collapseTC001A">\
+                                <span class="badge">4</span>\
+                                TC001A\
+                            </a>\
+                            <div class="panel-collapse collapse" id="collapseTC001A">\
+                                <div class="panel-body">\
+                                    <a href="#" class="list-group-item">4</a>\
+                                    <a href="#" class="list-group-item">3</a>\
+                                    <a href="#" class="list-group-item">2</a>\
+                                    <a href="#" class="list-group-item">1</a>\
+                                </div>\
+                            </div>\
+                        </div>\
+                        \
+                        <div class="panel panel-default">\
+                            <a class="list-group-item" data-toggle="collapse" href="#collapseTC002A">\
+                                <span class="badge">2</span>\
+                                TC002A\
+                            </a>\
+                            <div class="panel-collapse collapse" id="collapseTC002A">\
+                                <div class="panel-body">\
+                                    <a href="#" class="list-group-item">2</a>\
+                                    <a href="#" class="list-group-item">1</a>\
+                                </div>\
+                            </div>\
+                        </div>\
+                    </div>'
+    return gethtml('list', content)
+
 @route('/images/<filename:re:.*\.png>')
 def send_image(filename):
     return static_file(filename, root='images', mimetype='image/png')
