@@ -51,21 +51,31 @@ def get_files():
     content =   '<h1>All Videos</h1><br>'+\
                     '<div class="panel-group">'
 
+    compile_files = []
     for (dirpath, dirnames, filenames) in walk(_video_folder):
         webvideo_files = [file for file in filenames if (file.endswith(
-            ('.mp4','.ogg', '.mkv', '.webm')
+            ('.mp4','.ogg', '.webm')
         ) and
             not file.startswith("_")
         )]
         webvideo_links = ['{}?path={}'.format(i, dirpath) for i in webvideo_files]
+        compile_files.extend([file for file in filenames if (file.endswith('.mp4') and
+            file.startswith("_"))])
 
-        avi_files = [file for file in filenames if file.endswith('.avi')]
-        avi_links = []
-        for avi in avi_files:
-            if not "{}.mp4".format(avi) in webvideo_files:
-                avi_links.extend(['/convert/{}?path={}'.format(avi, dirpath)])
-            else:
+        avi_files = [file for file in filenames if file.endswith(('.avi', '.mkv'))]
+        avi_files_tmp = [file for file in filenames if file.endswith(('.avi', '.mkv'))]
+        
+        avi_links = ['/convert/{}?path={}'.format(avi, dirpath) for avi in avi_files]
+        compile_cnt = 0
+        for avi in avi_files_tmp: #Use a inplace copy to iterate to avoid multiple arrays
+            if (('{}.mp4'.format(avi) in webvideo_files) or ('_{}.mp4'.format(avi) in compile_files)):
+                #print avi
                 avi_files.remove(avi)
+                avi_links.remove('/convert/{}?path={}'.format(avi, dirpath))
+                if '_{}.mp4'.format(avi) in compile_files:
+                    compile_cnt += 1
+        #    else:
+        #        avi_links.extend(['/convert/{}?path={}'.format(avi, dirpath)])
 
         # create html here
         if (len(webvideo_files) + len(avi_files)) != 0:
@@ -74,7 +84,9 @@ def get_files():
             hashfrompath = m.hexdigest()
             content +=  '<div class="panel panel-default">\
                             <a class="list-group-item" data-toggle="collapse" href="#{}">'.format(hashfrompath)+\
-                                '<span class="badge">{}</span>'.format(len(webvideo_files) + len(avi_files))+\
+                                '<span class="badge progress-bar-warning">{}</span>'.format(compile_cnt)+\
+                                '<span class="badge progress-bar-danger">{}</span>'.format(len(avi_files))+\
+                                '<span class="badge progress-bar-info">{}</span>'.format(len(webvideo_files))+\
                                 "{}".format(dirpath)+\
                             '</a>'+\
                             '<div class="panel-collapse collapse" id="{}">'.format(hashfrompath)+\
@@ -91,8 +103,7 @@ def get_files():
                     </div>\
                 </div>'
     return gethtml("All files",
-               content,
-               30)
+               content)
 
 @route('/all-medialist')
 def get_files():
@@ -161,8 +172,8 @@ def get_files():
                      </li>'
 
     return gethtml("All files",
-                   result,
-                   30)
+                   result)
+
 @route('/test')
 def medialist():
     content = '<div class="vids">\
@@ -195,7 +206,7 @@ def index(name):
     path = request.query.path
     return template('\
         <h3>{{name}}</h3><br>\
-        <video width="800" height="600" controls>\
+        <video width="800" height="600" preload="auto" controls>\
           <source src="vid/{{name}}?path={{path}}" type=\'video/mp4\'>\
           <source src="vid/{{name}}?path={{path}}" type=\'video/ogg\'>\
           <source src="vid/{{name}}?path={{path}}" type=\'video/webm\'>\
@@ -233,8 +244,8 @@ def convert(name):
 #            '"{}.mp4"'.format(os.path.splitext(name)[0])
     start_new_thread(compileThread, (path, name))
     return gethtml("Conversion",
-                   '<h3>Converting {} @ {}<br>Returning in 2 sec</h3>'.format(name, path),
-                   2,
+                   '<h3>Converting {} @ {}<br>Returning in 10 sec</h3>'.format(name, path),
+                   10,
                    '/all')
 
 #            '<html>' + \
