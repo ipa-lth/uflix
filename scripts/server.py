@@ -204,21 +204,21 @@ def get_files():
     return gethtml("All files",
                content)
 
-@route('/video/<name>')
-def index(name):
-    path = request.query.path
-    return template('\
-        <h3>{{name}}</h3><br>\
-        <video width="800" height="600" preload="auto" controls>\
-          <source src="/video/play/{{name}}?path={{path}}" type=\'video/mp4\'>\
-          <source src="/video/play/{{name}}?path={{path}}" type=\'video/ogg\'>\
-          <source src="/video/play/{{name}}?path={{path}}" type=\'video/webm\'>\
+def video_html(name, path):
+    return '''
+        <video class="w-100" muted controls>\
+          <source src="/file/video/{0}?path={1}" type=\'video/mp4\'>\
+          <source src="/file/video/{0}?path={1}" type=\'video/ogg\'>\
+          <source src="/file/video/{0}?path={1}" type=\'video/webm\'>\
           Your browser does not support the video tag.\
-        </video> ',
-    name=name,
-    path=path)
+        </video>'''.format(name, path)
 
-@route('/video/play/<filename:path>')
+@route('/video/<name>')
+def video(name):
+    path = request.query.path
+    return video_html(name, path)
+
+@route('/file/video/<filename:path>')
 def send_video(filename):
     path = request.query.path
     return static_file(filename, root=path)
@@ -239,24 +239,34 @@ def create_album_body(files):
     html = '<div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-3">'
     
     for file in files:
+        downloadlink_ext=''
+        thumbnail_link='''
+<img class="img-fluid" 
+src="{0}" 
+width="100% \9" height="225" 
+focusable="false">'''.format(file['link'])
+        if file['type'] == 'MP4':
+            downloadlink_ext='/file'
+            thumbnail_link=video_html(file['name'], file['path'])
+
         html += '''
         <div class="col">
           <div class="card shadow-sm">
-            <svg class="bd-placeholder-img card-img-top" width="100%" height="225" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Placeholder: Thumbnail" preserveAspectRatio="xMidYMid slice" focusable="false"><title>Placeholder</title><rect width="100%" height="100%" fill="#55595c"/><text x="50%" y="50%" fill="#eceeef" dy=".3em">Thumbnail</text></svg>
-
+            {4}
             <div class="card-body">
-              <p class="card-text">{}</p>
+              <p class="card-text">{1}</p>
               <div class="d-flex justify-content-between align-items-center">
                 <div class="btn-group">
-                  <button type="button" class="btn btn-sm btn-outline-secondary">View</button>
-                  <button type="button" class="btn btn-sm btn-outline-secondary">Edit</button>
+                  <a href="{0}" class="btn btn-sm btn-outline-secondary" role="button">Open</a>
+                  <a href="{3}{0}" class="btn btn-sm btn-outline-secondary" role="button" download>Download</a>
+                  <!--button type="button" class="btn btn-sm btn-outline-secondary">View</button-->
                 </div>
-                <small class="text-muted">9 mins</small>
+                <small class="text-muted">{2}</small>
               </div>
             </div>
           </div>
         </div>
-        '''.format(file['name'])
+        '''.format(file['link'], file['name'], file['path'], downloadlink_ext, thumbnail_link)
     
     html += '</div>'
     return html
