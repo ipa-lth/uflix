@@ -7,7 +7,7 @@ from os import walk
 import subprocess
 import hashlib
 
-_video_folder = '.\\images'
+_video_folder = '.'
 
 def gethtml(title, content, refresh=None, redirect=None):
     ans = '<html> \
@@ -72,24 +72,71 @@ def gethtml5(title, content, refresh=None, redirect=None):
     '''
     return ans
 
+def gethtml_bs(title, content, refresh=None, redirect=None):
+    if refresh:
+        refresh_meta = '<meta http-equiv="refresh" content="{};'.format(refresh)
+        if redirect:
+            refresh_meta += 'url={}" />'.format(redirect)
+        else:
+            refresh_meta += '"/>'
+    
+    ans = '''
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+'''
+    ans += '<title>{}</title>'.format(title)
+    if refresh:
+        refresh_meta = '<meta http-equiv="refresh" content="{};'.format(refresh)
+        if redirect:
+            refresh_meta += 'url={}" />'.format(redirect)
+        else:
+            refresh_meta += '"/>'
+        ans += refresh_meta
+    ans +='''
+    <!-- Bootstrap core CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+
+    <style>
+      .bd-placeholder-img {
+        font-size: 1.125rem;
+        text-anchor: middle;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        user-select: none;
+      }
+
+      @media (min-width: 768px) {
+        .bd-placeholder-img-lg {
+          font-size: 3.5rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+'''
+    ans += '{}'.format(content)
+    ans += '''
+    <!-- Bootstrap Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.min.js" integrity="sha384-cVKIPhGWiC2Al4u+LWgxfKTRIcfu0JTxR+EQDz/bgldoEyl4H0zUF0QKbrJ0EcQF" crossorigin="anonymous"></script>
+  </body>
+</html>
+'''
+    return ans
+
+
 @route('/')
 def overview():
     content =  '<h1>Overview</h1><br>'+\
                 '<div class="list-group">\
-                  <a href="/crawl" class="list-group-item">Crawl</a>\
+                  <!--a href="/crawl" class="list-group-item">Crawl</a-->\
                   <a href="/all" class="list-group-item active">See all videos</a>\
-                  <a href="/exit" class="list-group-item">Shut down server</a>\
+                  <a href="/exit" class="list-group-item">Exit server</a>\
                 </div>'
 
     return gethtml("Overview", content)
-
-def crawl(video_folder):
-    webvideo_files = []
-    webvideo_links = []
-    for (dirpath, dirnames, filenames) in os.walk(video_folder):
-        webvideo_files.extend([file for file in filenames if file.endswith(('.mp4', '.ogg', '.webm'))])
-        webvideo_links.extend(['/video/{}?path={}'.format(i, dirpath) for i in webvideo_files])
-    return webvideo_files, webvideo_links
 
 def create_link(file_name, file_path, file_type):
     file_link = file_type
@@ -102,7 +149,7 @@ def create_link(file_name, file_path, file_type):
     return file_link
 
 def crawl_local_path(path):
-    extensions = ['.mp4', '.png', '.jpg', '.jpeg']
+    extensions = ['.mp4', '.png', '.jpg', '.jpeg'] #('.ogg', '.webm')
     files = []
 
     for root, _, filenames in os.walk(path):
@@ -120,34 +167,6 @@ def crawl_local_path(path):
     sorted_files = sorted(files, key=lambda x: (x['path'], x['name']))
     return sorted_files
 
-def store(webvideo_files, webvideo_links, filename):
-    with open(filename, 'w') as file:
-        file.write('\n'.join(webvideo_files) + '\n')
-        file.write('\n'.join(webvideo_links) + '\n')
-        checksum = hashlib.md5('\n'.join(webvideo_files + webvideo_links).encode()).hexdigest()
-        file.write(checksum)
-
-def load(filename):
-    webvideo_files = []
-    webvideo_links = []
-    stored_checksum = ''
-    with open(filename, 'r') as file:
-        lines = file.readlines()
-        webvideo_files = lines[0].strip().split('\n')
-        webvideo_links = lines[1].strip().split('\n')
-        stored_checksum = lines[2].strip()
-
-    computed_checksum = hashlib.md5('\n'.join(webvideo_files + webvideo_links).encode()).hexdigest()
-    if stored_checksum == computed_checksum:
-        return webvideo_files, webvideo_links
-    else:
-        raise ValueError('Checksum mismatch. The stored file may have been modified.')
-
-@route('/crawl')
-def cache():
-    webvideo_files, webvideo_links = crawl(_video_folder)
-    store(webvideo_files, webvideo_links, "_cache.uflix")
-    return
 
 @route('/all')
 def get_files():
@@ -155,18 +174,8 @@ def get_files():
                     '<div class="panel-group">'
 
     files = crawl_local_path(_video_folder)
-    # try:
-    #     webvideo_files, webvideo_links = load("_cache.uflix")
-    # except:
-    #     webvideo_files, webvideo_links = crawl(_video_folder)
-    #     store(webvideo_files, webvideo_links, "_cache.uflix")
-
-    # for (dirpath, dirnames, filenames) in walk(_video_folder):
-    #     webvideo_files = [file for file in filenames if file.endswith(('.mp4','.ogg', '.webm'))] # not  '.avi', '.mkv'
-    #     webvideo_links = ['/video/{}?path={}'.format(i, dirpath) for i in webvideo_files]
 
     # create html here
-
     path_counts = defaultdict(int)
 
     for file in files:
@@ -195,48 +204,6 @@ def get_files():
     return gethtml("All files",
                content)
 
-
-# @route('/all-medialist')
-# def get_files():
-#     result = '<h1>All available files</h1><br>' + \
-#              '<div class="vids">' + \
-#              '<ul class="media-list">'
-
-#     for (dirpath, dirnames, filenames) in walk(_video_folder):
-#         webvideo_files = [file for file in filenames if file.endswith(('.mp4', '.ogg', '.mkv', '.webm'))]
-#         print(webvideo_files)
-#         webvideo_links = ['/video/{}?path={}'.format(i, dirpath) for i in webvideo_files]
-#         print(webvideo_links)
-
-#         if len(webvideo_files) != 0:
-#             result += f'<li class="media"> \
-#                             <a class="pull-left" href="#"> \
-#                                 <span class="glyphicon glyphicon-folder-open" \
-#                                       style="width: 64px; height: 64px;" \
-#                                       aria-hidden="true"> \
-#                                 </span> \
-#                             </a> \
-#                             <div class="media-body"> \
-#                                 <h4 class="media-heading">{dirpath}</h4>'
-
-#             for vid, link in zip(webvideo_files, webvideo_links):
-#                 result += f'<div class="media"> \
-#                                 <a class="pull-left pull-middle" href="{link}"> \
-#                                     <span class="glyphicon glyphicon-play" \
-#                                           style="width: 64px; height: 64px;" \
-#                                           aria-hidden="true"> \
-#                                     </span> \
-#                                 </a> \
-#                                 <div class="media-body"> \
-#                                     <h4 class="media-heading">{vid}</h4> \
-#                                 </div> \
-#                             </div>'
-
-#             result += '</div> \
-#                      </li>'
-
-#     return gethtml("All files", result)
-
 @route('/video/<name>')
 def index(name):
     path = request.query.path
@@ -256,155 +223,142 @@ def send_video(filename):
     path = request.query.path
     return static_file(filename, root=path)
 
-# Examples
 
-@route('/image/<filename:re:.*\.png>')
+# Examples
+@route('/image/<filename:re:.*\\.png>')
 def send_image(filename):
     path = request.query.path
     return static_file(filename, root=path, mimetype='image/png')
 
-@route('/image/<filename:re:.*\.jpg>')
+@route('/image/<filename:re:.*\\.jpg>')
 def send_image(filename):
     path = request.query.path
     return static_file(filename, root=path, mimetype='image/jpg')
 
-@route('/hello/<name>')
-def hello(name):
-    return template('<b>Hello {{name}}</b>!', name=name)
-
-def generate_lightbox_code(files):
-    html_code = '<div class="lightbox">\n'
-    html_code += '  <div class="row">\n'
+def create_album_body(files):
+    html = '<div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-3">'
     
-    # Iterate over the files and create the HTML code for each image
     for file in files:
-        html_code += '    <div class="col-lg-6">\n'
-        html_code += f'      <img src="{file["link"]}" data-mdb-img="{file["link"]}" alt="{file["name"]}" class="w-100 mb-2 mb-md-4 shadow-1-strong rounded" />\n'
-        html_code += '    </div>\n'
+        html += '''
+        <div class="col">
+          <div class="card shadow-sm">
+            <svg class="bd-placeholder-img card-img-top" width="100%" height="225" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Placeholder: Thumbnail" preserveAspectRatio="xMidYMid slice" focusable="false"><title>Placeholder</title><rect width="100%" height="100%" fill="#55595c"/><text x="50%" y="50%" fill="#eceeef" dy=".3em">Thumbnail</text></svg>
+
+            <div class="card-body">
+              <p class="card-text">{}</p>
+              <div class="d-flex justify-content-between align-items-center">
+                <div class="btn-group">
+                  <button type="button" class="btn btn-sm btn-outline-secondary">View</button>
+                  <button type="button" class="btn btn-sm btn-outline-secondary">Edit</button>
+                </div>
+                <small class="text-muted">9 mins</small>
+              </div>
+            </div>
+          </div>
+        </div>
+        '''.format(file['name'])
     
-    html_code += '  </div>\n'
-    html_code += '</div>'
-    
-    return html_code
+    html += '</div>'
+    return html
 
-def generate_html_gallery(files):
-    html_code = '<!-- Gallery -->\n'
-    html_code += '<div class="row">\n'
-    
-    # Iterate over the files and create the HTML code for each image
-    for file in files:
-        html_code += '  <div class="col-lg-4 col-md-12 mb-4 mb-lg-0">\n'
-        html_code += f'    <img src="{file["link"]}" class="w-100 shadow-1-strong rounded mb-4" alt="{file["name"]}" />\n'
-        html_code += '  </div>\n'
-    
-    html_code += '</div>\n'
-    html_code += '<!-- Gallery -->'
-    
-    return html_code
-
-def generate_html_carousel(files):
-    html_code = '<!-- Carousel wrapper -->\n'
-    html_code += '<div id="carouselMultiItemExample" class="carousel slide carousel-dark text-center" data-mdb-ride="carousel">\n'
-    html_code += '  <!-- Controls -->\n'
-    html_code += '  <div class="d-flex justify-content-center mb-4">\n'
-    html_code += '    <button class="carousel-control-prev position-relative" type="button" data-mdb-target="#carouselMultiItemExample" data-mdb-slide="prev">\n'
-    html_code += '      <span class="carousel-control-prev-icon" aria-hidden="true"></span>\n'
-    html_code += '      <span class="visually-hidden">Previous</span>\n'
-    html_code += '    </button>\n'
-    html_code += '    <button class="carousel-control-next position-relative" type="button" data-mdb-target="#carouselMultiItemExample" data-mdb-slide="next">\n'
-    html_code += '      <span class="carousel-control-next-icon" aria-hidden="true"></span>\n'
-    html_code += '      <span class="visually-hidden">Next</span>\n'
-    html_code += '    </button>\n'
-    html_code += '  </div>\n'
-    html_code += '  <!-- Inner -->\n'
-    html_code += '  <div class="carousel-inner py-4">\n'
-
-    # Divide the files into groups of 3
-    groups = [files[i:i+3] for i in range(0, len(files), 3)]
-
-    # Iterate over the groups and create the HTML code for each carousel item
-    for i, group in enumerate(groups):
-        if i == 0:
-            html_code += '    <!-- Single item -->\n'
-            html_code += '    <div class="carousel-item active">\n'
-        else:
-            html_code += '    <!-- Single item -->\n'
-            html_code += '    <div class="carousel-item">\n'
-
-        html_code += '      <div class="container">\n'
-        html_code += '        <div class="row">\n'
-
-        # Iterate over the files in the group and create the HTML code for each card
-        for file in group:
-            html_code += '          <div class="col-lg-4">\n'
-            html_code += '            <div class="card">\n'
-            html_code += f'              <img src="{file["link"]}" class="card-img-top" alt="{file["name"]}" />\n'
-            html_code += '              <div class="card-body">\n'
-            html_code += f'                <h5 class="card-title">{file["name"]}</h5>\n'
-            html_code += f'                <p class="card-text">{file["path"]}</p>\n'
-            html_code += '                <a href="#!" class="btn btn-primary">Button</a>\n'
-            html_code += '              </div>\n'
-            html_code += '            </div>\n'
-            html_code += '          </div>\n'
-
-        html_code += '        </div>\n'
-        html_code += '      </div>\n'
-        html_code += '    </div>\n'
-
-    html_code += '  </div>\n'
-    html_code += '  <!-- Inner -->\n'
-    html_code += '</div>\n'
-    html_code += '<!-- Carousel wrapper -->'
-
-    return html_code
-
-@route('/light')
-def light():
+@route('/album')
+def album():
     files = crawl_local_path(_video_folder)
-    content = generate_html_gallery(files)
-    return gethtml5('title', content)
+    body = create_album_body(files)
+    content ='''
+<header>
+  <div class="collapse bg-dark" id="navbarHeader">
+    <div class="container">
+      <div class="row">
+        <div class="col-sm-8 col-md-7 py-4">
+          <h4 class="text-white">About</h4>
+          <p class="text-muted">Add some information</p>
+        </div>
+        <div class="col-sm-4 offset-md-1 py-4">
+          <h4 class="text-white">Contact</h4>
+          <ul class="list-unstyled">
+            <li><a href="#" class="text-white">Email me</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="navbar navbar-dark bg-dark shadow-sm">
+    <div class="container">
+      <a href="#" class="navbar-brand d-flex align-items-center">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" aria-hidden="true" class="me-2" viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        <strong>Album</strong>
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarHeader" aria-controls="navbarHeader" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+    </div>
+  </div>
+</header>
 
-@route('/carousel')
-def light():
-    files = crawl_local_path(_video_folder)
-    content = generate_html_carousel(files)
-    return gethtml5('carousel', content)
+<main>
 
-@route('/lightbox')
-def lightbox():
-    files = crawl_local_path(_video_folder)
-    content ='\
-<div class="lightbox">\
-  <div class="row">\
-    <div class="col-lg-6">\
-      <img\
-        src="https://mdbcdn.b-cdn.net/img/Photos/Thumbnails/Slides/1.webp"\
-        data-mdb-img="https://mdbcdn.b-cdn.net/img/Photos/Slides/1.webp"\
-        alt="Table Full of Spices"\
-        class="w-100 mb-2 mb-md-4 shadow-1-strong rounded"\
-      />\
-      <img\
-        src="https://mdbcdn.b-cdn.net/img/Photos/Thumbnails/Square/1.webp"\
-        data-mdb-img="https://mdbcdn.b-cdn.net/img/Photos/Square/1.webp"\
-        alt="Coconut with Strawberries"\
-        class="w-100 shadow-1-strong rounded"\
-      />\
-    </div>\
-    <div class="col-lg-6">\
-      <img\
-        src="https://mdbcdn.b-cdn.net/img/Photos/Thumbnails/Vertical/1.webp"\
-        data-mdb-img="https://mdbcdn.b-cdn.net/img/Photos/Vertical/1.webp"\
-        alt="Dark Roast Iced Coffee"\
-        class="w-100 shadow-1-strong rounded"\
-      />\
-    </div>\
-  </div>\
-</div>'
-    return gethtml5("Lightbox", content)
+  <section class="py-5 text-center container">
+    <div class="row py-lg-5">
+      <div class="col-lg-6 col-md-8 mx-auto">
+        <h1 class="fw-light">Album example</h1>
+        <p class="lead text-muted">Something short and leading</p>
+        <p>
+          <a href="#" class="btn btn-primary my-2">Main call to action</a>
+          <a href="#" class="btn btn-secondary my-2">Secondary action</a>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <div class="album py-5 bg-light">
+    <div class="container">
+      <!--
+      <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-3">
+        <div class="col">
+          <div class="card shadow-sm">
+            <svg class="bd-placeholder-img card-img-top" width="100%" height="225" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Placeholder: Thumbnail" preserveAspectRatio="xMidYMid slice" focusable="false"><title>Placeholder</title><rect width="100%" height="100%" fill="#55595c"/><text x="50%" y="50%" fill="#eceeef" dy=".3em">Thumbnail</text></svg>
+
+            <div class="card-body">
+              <p class="card-text">This is a wider card with</p>
+              <div class="d-flex justify-content-between align-items-center">
+                <div class="btn-group">
+                  <button type="button" class="btn btn-sm btn-outline-secondary">View</button>
+                  <button type="button" class="btn btn-sm btn-outline-secondary">Edit</button>
+                </div>
+                <small class="text-muted">9 mins</small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      -->
+      {}
+    </div>
+  </div>
+
+</main>
+
+<footer class="text-muted py-5">
+  <div class="container">
+    <p class="float-end mb-1">
+      <a href="#">Back to top</a>
+    </p>
+    <p class="mb-1">Album example </p>
+    <p class="mb-0">New to Bootstrap? <a href="/">Visit</a>.</p>
+  </div>
+</footer>
+'''.format(body)
+    return gethtml_bs('Album', content)
 
 #Utils
 @route('/exit')
 def exit():
+    print("Exit called")
     os._exit(0)
     return "<h1>System is shutting down!</h1>"
 
+
+print('starting in:', os.getcwd())
+run(host='0.0.0.0', port=8080, debug=False)
+#run(host='localhost', port=8080, debug=True)
