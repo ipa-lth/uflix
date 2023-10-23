@@ -6,8 +6,14 @@ import os
 from os import walk
 import subprocess
 import hashlib
+import json
 
-_video_folder = '.'
+#_root_folder = 'S:\\300\\320\\327\\'
+_root_folder = 'D:\\Workspace\\99-privat'
+_cache = '_cache.json'
+
+_files = None
+_checksum = None
 
 def gethtml(title, content, refresh=None, redirect=None):
     ans = '<html> \
@@ -109,11 +115,27 @@ def create_link(file_name, file_path, file_type):
         file_link = '/image/{}?path={}'.format(file_name, file_path)
     return file_link
 
+def load_or_crawl(path=_root_folder, cache_file_path=_cache):
+    print('Loading content in {}'.format(path))
+    if _files is None:
+        try:
+            files = load(cache_file_path, path)
+            print('Cache loaded')
+        except:
+            files = crawl_local_path(path)
+            print('Cache created')
+            store(files, cache_file_path, path)
+            print('Cache stored')
+        return files
+    else:
+        return _files
+
 def crawl_local_path(path):
     extensions = ['.mp4', '.png', '.jpg', '.jpeg'] #('.ogg', '.webm')
     files = []
 
     for root, _, filenames in os.walk(path):
+        print('Loading folder: {}'.format(root))
         for filename in filenames:
             file_extension = os.path.splitext(filename)[1].lower()
             if file_extension in extensions:
@@ -128,13 +150,42 @@ def crawl_local_path(path):
     sorted_files = sorted(files, key=lambda x: (x['path'], x['name']))
     return sorted_files
 
+def store(array, file_path, crawled_path=_root_folder):
+    file_content = json.dumps(array).encode('utf-8')
+    checksum = hashlib.md5(file_content).hexdigest()
+
+    with open(file_path, 'w') as file:
+        data = {
+            'array': array,
+            'checksum': checksum,
+            'crawled_path': crawled_path
+        }
+        json.dump(data, file)
+
+def load(cache_file_path, root_folder=_root_folder):
+    with open(cache_file_path, 'r') as file:
+        data = json.load(file)
+        array = data['array']
+        checksum = data['checksum']
+        crawled_path = data['crawled_path']
+
+        file_content = json.dumps(array).encode('utf-8')
+        calculated_checksum = hashlib.md5(file_content).hexdigest()
+
+        if crawled_path != root_folder:
+            raise ValueError('Crawled folder mismatch')
+        
+        if calculated_checksum != checksum:
+            raise ValueError('Checksum mismatch for the array')
+
+        return array
 
 @route('/list')
 def get_files():
     content =   '<h1>List</h1><br>'+\
                     '<div class="panel-group">'
 
-    files = crawl_local_path(_video_folder)
+    files = load_or_crawl(_root_folder)
 
     # create html here
     path_counts = defaultdict(int)
@@ -204,7 +255,7 @@ def create_album_body(files):
         thumbnail_link='''
 <img class="img-fluid" 
 src="{0}" 
-width="100% \9" height="225" 
+width="100% \9" max-height="225" 
 focusable="false">'''.format(file['link'])
         if file['type'] == 'MP4':
             downloadlink_ext='/file'
@@ -234,7 +285,7 @@ focusable="false">'''.format(file['link'])
 
 @route('/album')
 def album():
-    files = crawl_local_path(_video_folder)
+    files = load_or_crawl(_root_folder)
     body = create_album_body(files)
     content ='''
 <header>
@@ -321,6 +372,14 @@ def album():
 </footer>
 '''.format(body)
     return gethtml_bs('Album', content)
+
+@route('/button')
+def button():
+    ans = '''
+<label class="form-label" for="customFile">Default file input example</label>
+<input type="file" webkitdirectory directory multiple/>
+    '''
+    return gethtml_bs('Titel', ans)
 
 #Utils
 @route('/exit')
