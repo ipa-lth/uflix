@@ -9,7 +9,7 @@ import hashlib
 import json
 
 #_root_folder = 'S:\\300\\320\\327\\'
-_root_folder = 'D:\\Workspace\\99-privat'
+_root_folder = '.'
 _cache = '_cache.json'
 
 _files = None
@@ -248,40 +248,40 @@ def send_image(filename):
     return static_file(filename, root=path, mimetype='image/jpg')
 
 def create_album_body(files):
-    html = '<div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-3">'
+    html = ['<div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-3">']
     
     for file in files:
         downloadlink_ext=''
-        thumbnail_link='''
+        thumbnail_link=f'''
 <img class="img-fluid" 
-src="{0}" 
+src="{file['link']}" 
 width="100% \9" max-height="225" 
-focusable="false">'''.format(file['link'])
+focusable="false">'''
         if file['type'] == 'MP4':
             downloadlink_ext='/file'
             thumbnail_link=video_html(file['name'], file['path'])
 
-        html += '''
+        html.append(f'''
         <div class="col">
           <div class="card shadow-sm">
-            {4}
+            {thumbnail_link}
             <div class="card-body">
-              <p class="card-text">{1}</p>
+              <p class="card-text">{file['name']}</p>
               <div class="d-flex justify-content-between align-items-center">
                 <div class="btn-group">
-                  <a href="{0}" class="btn btn-sm btn-outline-secondary" role="button">Open</a>
-                  <a href="{3}{0}" class="btn btn-sm btn-outline-secondary" role="button" download>Download</a>
+                  <a href="{file['link']}" class="btn btn-sm btn-outline-secondary" role="button">Open</a>
+                  <a href="{downloadlink_ext}{file['link']}" class="btn btn-sm btn-outline-secondary" role="button" download>Download</a>
                   <!--button type="button" class="btn btn-sm btn-outline-secondary">View</button-->
                 </div>
-                <small class="text-muted">{2}</small>
+                <small class="text-muted">{file['path']}</small>
               </div>
             </div>
           </div>
         </div>
-        '''.format(file['link'], file['name'], file['path'], downloadlink_ext, thumbnail_link)
+        ''')
     
-    html += '</div>'
-    return html
+    html.append('</div>')
+    return ''.join(html)
 
 @route('/album')
 def album():
