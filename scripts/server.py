@@ -47,7 +47,6 @@ def gethtml_bs(title, content, refresh=None, redirect=None):
             refresh_meta += '"/>'
     
     ans = '''<!doctype html>
-<!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8">
@@ -62,8 +61,9 @@ def gethtml_bs(title, content, refresh=None, redirect=None):
             refresh_meta += '"/>'
         ans += refresh_meta
     ans +='''
-  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.min.js" integrity="sha384-cVKIPhGWiC2Al4u+LWgxfKTRIcfu0JTxR+EQDz/bgldoEyl4H0zUF0QKbrJ0EcQF" crossorigin="anonymous"></script>
 
     <style>
       .bd-placeholder-img {
@@ -84,10 +84,7 @@ def gethtml_bs(title, content, refresh=None, redirect=None):
   <body>
 '''
     ans += '{}'.format(content)
-    ans += '''
-    <!-- Bootstrap Bundle with Popper -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.min.js" integrity="sha384-cVKIPhGWiC2Al4u+LWgxfKTRIcfu0JTxR+EQDz/bgldoEyl4H0zUF0QKbrJ0EcQF" crossorigin="anonymous"></script>
-  </body>
+    ans += '''  </body>
 </html>
 '''
     return ans
@@ -218,7 +215,7 @@ def get_files():
 
 def video_html(name, path):
     return '''
-        <video class="w-100" muted controls>\
+        <video class="w-100" height="225" muted controls>\
           <source src="/file/video/{0}?path={1}" type=\'video/mp4\'>\
           <source src="/file/video/{0}?path={1}" type=\'video/ogg\'>\
           <source src="/file/video/{0}?path={1}" type=\'video/webm\'>\
@@ -230,11 +227,14 @@ def video(name):
     path = request.query.path
     return video_html(name, path)
 
-@route('/file/video/<filename:path>')
+@route('/file/video/<filename:re:.*\\.(mp4|MP4)>')
 def send_video(filename):
     path = request.query.path
     return static_file(filename, root=path)
 
+@route('/ferienplan')
+def forward_to():
+    return gethtml("redirect", "Nothing", True, 'https://www.schulferien.org/deutschland/feriendichte/2024/')
 
 # Examples
 @route('/image/<filename:re:.*\\.(png|PNG)>')
@@ -425,13 +425,105 @@ def album():
 </script>'''
     return gethtml_bs('Album', content)
 
-@route('/button')
-def button():
+@route('/test')
+def test():
+    files = load_or_crawl(_root_folder)
+    body = create_album_body(files)
     ans = '''
-<label class="form-label" for="customFile">Default file input example</label>
-<input type="file" webkitdirectory directory multiple/>
-    '''
-    return gethtml_bs('Titel', ans)
+<header>
+  <!-- Nav-Bar Code hier -->
+</header>
+
+<main>
+  <section class="py-5 text-center container">
+    <!-- Inhalt des Abschnitts hier -->
+  </section>
+
+  <div class="album py-5 bg-light">
+    <div class="container">
+      <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-3">
+        <!-- Hier wird der generierte Album-Körper eingefügt -->'''
+    ans += '{}'.format(body)
+    ans += '''
+      </div>
+
+      <div class="load-more is-hidden">Load more</div>
+    </div>
+  </div>
+</main>
+
+<footer class="text-muted py-5">
+  <!-- Footer-Inhalt hier -->
+</footer>
+
+<script>
+  var infiniteScrolling = (function() {
+    'use strict';
+
+    var limit = 0,
+      counter = 0,
+      $loading;
+
+    function scrollTo(offset) {
+      $(window).scrollTop(offset);
+    }
+
+    function loadMore() {
+      $('.load-more').after($loading);
+      $(document).off('scroll', scrollController);
+      $('.load-more').addClass('is-hidden');
+
+      setTimeout(function() {
+        $loading.remove();
+        $('.album .container .row').append($('.hidden-content .col').clone());
+
+        $('.album .container .row .col').not('.element-in').each(function(i) {
+          var $this = $(this);
+
+          setTimeout(function() {
+            requestAnimationFrame(function() {
+              $this.addClass('element-in');
+            });
+          }, (100 * Math.ceil((i + 1) / 3)));
+        });
+
+        $(document).on('scroll touchmove', scrollController);
+
+        if (counter == limit) {
+          $('.load-more').removeClass('is-hidden');
+        }
+      }, 400);
+    }
+
+    function scrollController() {
+      if ($(window).scrollTop() + $(window).height() >= $('.album .container .row').height() && counter < limit) {
+        loadMore();
+        counter += 1;
+        return;
+      }
+    }
+
+    function bindUI() {
+      $(document).on('scroll', scrollController);
+      $('.load-more').on('click', loadMore);
+    }
+
+    function init(limite) {
+      limit = limite;
+      bindUI();
+      $loading = $('<div class="loading">Loading</div>');
+    }
+
+    return {
+      init: init
+    };
+  })();
+
+  $(function() {
+    infiniteScrolling.init(6);
+  });
+</script>'''
+    return gethtml_bs('Album', ans)
 
 #Utils
 @route('/exit')
