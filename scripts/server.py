@@ -256,11 +256,7 @@ def create_album_body(files, index_visible=0, index_hidden=None):
         if i >= index_hidden: 
             hidden_str = 'd-none'
         downloadlink_ext=''
-        thumbnail_link=f'''
-<img class="card-img-top" 
-src="{file['link']}" 
-height="225" 
-focusable="false">'''
+        thumbnail_link=f'''<img class="card-img-top" src="{file['link']}" height="225" focusable="false">'''
         if file['type'] == 'MP4':
             downloadlink_ext='/file'
             thumbnail_link=video_html(file['name'], file['path'])
@@ -275,7 +271,6 @@ focusable="false">'''
                 <div class="btn-group">
                   <a href="{file['link']}" class="btn btn-sm btn-outline-secondary" role="button">Open</a>
                   <a href="{downloadlink_ext}{file['link']}" class="btn btn-sm btn-outline-secondary" role="button" download>Download</a>
-                  <!--button type="button" class="btn btn-sm btn-outline-secondary">View</button-->
                 </div>
                 <small class="text-muted">{file['path']}</small>
               </div>
@@ -341,8 +336,8 @@ def album():
     <div class="container">
       {}
     </div>
+    <button type="button" class="btn btn-sm btn-outline-secondary load-more">Load more</button>
   </div>
-
 </main>
 
 <footer class="text-muted py-5">
@@ -375,7 +370,7 @@ def album():
 
         setTimeout(function() {
           $loading.remove();
-          $('.container .row .d-none').slice(counter * limit, (counter + 1) * limit).each(function() {
+          $('.container .row .d-none').slice(0, Math.min(limit, $('.container .row .d-none').length)).each(function() {
             var $this = $(this);
             var imgSrc = $this.find('img').attr('src');
             $this.removeClass('d-none');
@@ -384,23 +379,18 @@ def album():
 
           $(document).on('scroll touchmove', scrollController);
 
-          if (counter == Math.ceil($('.container .row .d-none').length / limit) - 1) {
-            $('.load-more').addClass('d-none');
-          } else {
+          if ($('.container .row .d-none').length > 0) {
             $('.load-more').removeClass('d-none');
-          }
+          } else {
+            $('.load-more').addClass('d-none');
+          } 
 
-          counter += 1;
         }, 400);
       }
 
       function scrollController() {
-      console.log($(window).scrollTop() + $(window).height())
-      console.log($('.container .row').height())
-      console.log($(window).scrollTop() + $(window).height() >= $('.container .row').height());
-        if ($(window).scrollTop() + $(window).height() >= $('.container .row').height() && counter < Math.ceil($('.container .row .d-none').length / limit)) {
+        if ($(window).scrollTop() + $(window).height() >= $('.container .row').height() && $('.container .row .d-none').length > 0) {
           loadMore();
-          return;
         }
       }
 
@@ -422,7 +412,8 @@ def album():
     $(function() {
       infiniteScrolling.init();
     });
-</script>'''
+</script>
+'''
     return gethtml_bs('Album', content)
 
 @route('/test')
