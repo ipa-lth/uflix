@@ -25,7 +25,7 @@ def gethtml(title, content, refresh=None, redirect=None):
               <!-- Include all compiled plugins (below), or include individual files as needed --> \
               <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>'
     if refresh:
-        ans += '<meta http-equiv="refresh" content="{};'.format(refresh)
+        ans += '<meta http-equiv="refresh" content="{};"'.format(refresh)
         if redirect:
              ans += 'url={}" />'.format(redirect)
         else:
@@ -46,7 +46,7 @@ def gethtml_bs(title, content, refresh=None, redirect=None):
         else:
             refresh_meta += '"/>'
     
-    ans = '''
+    ans = '''<!doctype html>
 <!doctype html>
 <html lang="en">
   <head>
@@ -62,7 +62,7 @@ def gethtml_bs(title, content, refresh=None, redirect=None):
             refresh_meta += '"/>'
         ans += refresh_meta
     ans +='''
-    <!-- Bootstrap core CSS -->
+  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
 
     <style>
@@ -237,32 +237,36 @@ def send_video(filename):
 
 
 # Examples
-@route('/image/<filename:re:.*\\.png>')
+@route('/image/<filename:re:.*\\.(png|PNG)>')
 def send_image(filename):
     path = request.query.path
     return static_file(filename, root=path, mimetype='image/png')
 
-@route('/image/<filename:re:.*\\.jpg>')
+@route('/image/<filename:re:.*\\.(jpg|jpeg|JPG|JPEG)>')
 def send_image(filename):
     path = request.query.path
     return static_file(filename, root=path, mimetype='image/jpg')
 
-def create_album_body(files):
-    html = ['<div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-3">']
+def create_album_body(files, index_visible=0, index_hidden=None):
+    if index_hidden is None: index_hidden = len(files)
+    html = [f'<div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-3">']
     
-    for file in files:
+    for i, file in enumerate(files):
+        hidden_str = 'visible'
+        if i >= index_hidden: 
+            hidden_str = 'd-none'
         downloadlink_ext=''
         thumbnail_link=f'''
-<img class="img-fluid" 
+<img class="card-img-top" 
 src="{file['link']}" 
-width="100% \9" max-height="225" 
+height="225" 
 focusable="false">'''
         if file['type'] == 'MP4':
             downloadlink_ext='/file'
             thumbnail_link=video_html(file['name'], file['path'])
 
         html.append(f'''
-        <div class="col">
+        <div class="col {hidden_str}">
           <div class="card shadow-sm">
             {thumbnail_link}
             <div class="card-body">
@@ -286,7 +290,7 @@ focusable="false">'''
 @route('/album')
 def album():
     files = load_or_crawl(_root_folder)
-    body = create_album_body(files)
+    body = create_album_body(files, 0, 6)
     content ='''
 <header>
   <div class="collapse bg-dark" id="navbarHeader">
@@ -335,26 +339,6 @@ def album():
 
   <div class="album py-5 bg-light">
     <div class="container">
-      <!--
-      <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-3">
-        <div class="col">
-          <div class="card shadow-sm">
-            <svg class="bd-placeholder-img card-img-top" width="100%" height="225" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Placeholder: Thumbnail" preserveAspectRatio="xMidYMid slice" focusable="false"><title>Placeholder</title><rect width="100%" height="100%" fill="#55595c"/><text x="50%" y="50%" fill="#eceeef" dy=".3em">Thumbnail</text></svg>
-
-            <div class="card-body">
-              <p class="card-text">This is a wider card with</p>
-              <div class="d-flex justify-content-between align-items-center">
-                <div class="btn-group">
-                  <button type="button" class="btn btn-sm btn-outline-secondary">View</button>
-                  <button type="button" class="btn btn-sm btn-outline-secondary">Edit</button>
-                </div>
-                <small class="text-muted">9 mins</small>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      -->
       {}
     </div>
   </div>
@@ -371,6 +355,74 @@ def album():
   </div>
 </footer>
 '''.format(body)
+    content += '''
+<script>
+    var infiniteScrolling = (function() {
+      'use strict';
+
+      var limit = 6,
+        counter = 0,
+        $loading;
+
+      function scrollTo(offset) {
+        $(window).scrollTop(offset);
+      }
+
+      function loadMore() {
+        $('.load-more').after($loading);
+        $(document).off('scroll', scrollController);
+        $('.load-more').addClass('d-none');
+
+        setTimeout(function() {
+          $loading.remove();
+          $('.container .row .d-none').slice(counter * limit, (counter + 1) * limit).each(function() {
+            var $this = $(this);
+            var imgSrc = $this.find('img').attr('src');
+            $this.removeClass('d-none');
+            $this.addClass('visible');
+          });
+
+          $(document).on('scroll touchmove', scrollController);
+
+          if (counter == Math.ceil($('.container .row .d-none').length / limit) - 1) {
+            $('.load-more').addClass('d-none');
+          } else {
+            $('.load-more').removeClass('d-none');
+          }
+
+          counter += 1;
+        }, 400);
+      }
+
+      function scrollController() {
+      console.log($(window).scrollTop() + $(window).height())
+      console.log($('.container .row').height())
+      console.log($(window).scrollTop() + $(window).height() >= $('.container .row').height());
+        if ($(window).scrollTop() + $(window).height() >= $('.container .row').height() && counter < Math.ceil($('.container .row .d-none').length / limit)) {
+          loadMore();
+          return;
+        }
+      }
+
+      function bindUI() {
+        $(document).on('scroll', scrollController);
+        $('.load-more').on('click', loadMore);
+      }
+
+      function init() {
+        bindUI();
+        $loading = $('<div class="loading">Loading</div>');
+      }
+
+      return {
+        init: init
+      };
+    })();
+
+    $(function() {
+      infiniteScrolling.init();
+    });
+</script>'''
     return gethtml_bs('Album', content)
 
 @route('/button')
