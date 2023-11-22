@@ -15,7 +15,7 @@ _cache = '_cache.json'
 _files = None
 _checksum = None
 
-def gethtml(title, content, refresh=None, redirect=None):
+def gethtml(title, content):
     ans = '<html> \
             <head>' +\
               '<title>{}</title>'.format(title) +\
@@ -24,12 +24,6 @@ def gethtml(title, content, refresh=None, redirect=None):
               <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script> \
               <!-- Include all compiled plugins (below), or include individual files as needed --> \
               <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>'
-    if refresh:
-        ans += '<meta http-equiv="refresh" content="{};"'.format(refresh)
-        if redirect:
-             ans += 'url={}" />'.format(redirect)
-        else:
-            ans += '"/>'
     ans += '<meta name="viewport" content="width=device-width, initial-scale=1">'
     ans +=  '</head>' + \
             '<body>' + \
@@ -38,14 +32,7 @@ def gethtml(title, content, refresh=None, redirect=None):
         '</html>'
     return ans
 
-def gethtml_bs(title, content, refresh=None, redirect=None):
-    if refresh:
-        refresh_meta = '<meta http-equiv="refresh" content="{};'.format(refresh)
-        if redirect:
-            refresh_meta += 'url={}" />'.format(redirect)
-        else:
-            refresh_meta += '"/>'
-    
+def gethtml_bs(title, content, refresh_time_s=None, redirect_url=None):
     ans = '''<!doctype html>
 <html lang="en">
   <head>
@@ -53,10 +40,10 @@ def gethtml_bs(title, content, refresh=None, redirect=None):
     <meta name="viewport" content="width=device-width, initial-scale=1">
 '''
     ans += '<title>{}</title>'.format(title)
-    if refresh:
-        refresh_meta = '<meta http-equiv="refresh" content="{};'.format(refresh)
-        if redirect:
-            refresh_meta += 'url={}" />'.format(redirect)
+    if refresh_time_s is not None:
+        refresh_meta = '<meta http-equiv="Refresh" content="{};'.format(refresh_time_s)
+        if redirect_url is not None:
+            refresh_meta += 'url={}" />'.format("'{}'".format(redirect_url))
         else:
             refresh_meta += '"/>'
         ans += refresh_meta
@@ -234,7 +221,7 @@ def send_video(filename):
 
 @route('/ferienplan')
 def forward_to():
-    return gethtml("redirect", "Nothing", True, 'https://www.schulferien.org/deutschland/feriendichte/2024/')
+    return gethtml_bs("Redirect", "redirect", 0, 'https://www.schulferien.org/deutschland/feriendichte/2024/')
 
 # Examples
 @route('/image/<filename:re:.*\\.(png|PNG)>')
