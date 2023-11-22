@@ -319,7 +319,7 @@ def album():
 
 <main>
 
-  <section class="py-5 text-center container">
+  <section id="functional-header" class="py-5 text-center container">
     <div class="row py-lg-5">
       <div class="col-lg-6 col-md-8 mx-auto">
         <h1 class="fw-light">Album example</h1>
@@ -331,12 +331,13 @@ def album():
       </div>
     </div>
   </section>
-
-  <div class="album py-5 bg-light">
+  <div class="album py-5 bg-light" id="visible-album">
     <div class="container">
       {}
     </div>
-    <button type="button" class="btn btn-sm btn-outline-secondary load-more">Load more</button>
+    <center>
+      <button type="button" class="btn btn-sm btn-outline-secondary load-more" style="text-align: center;">Load more</button>
+    </center>
   </div>
 </main>
 
@@ -389,7 +390,7 @@ def album():
       }
 
       function scrollController() {
-        if ($(window).scrollTop() + $(window).height() >= $('.container .row').height() && $('.container .row .d-none').length > 0) {
+        if ( ($(window).height() + $(window).scrollTop()) >= ($('header').height() + $('#functional-header').height() + $('#visible-album').height()) && $('.container .row .d-none').length > 0) {
           loadMore();
         }
       }
@@ -401,7 +402,7 @@ def album():
 
       function init() {
         bindUI();
-        $loading = $('<div class="loading">Loading</div>');
+        $loading = $('<div class="loading" style="text-align: center;">Loading</div>');
       }
 
       return {
