@@ -415,6 +415,18 @@ def album():
 
 
 #Utils
+@route('/crawl')
+def crawl():
+    global _root_folder, _cache
+    path = path = request.query.path
+    if len(path) > 0:
+      _root_folder = path
+      files = crawl_local_path(path)
+      store(files, _cache, path)
+      return gethtml_bs('Crawling', "Crawling path: '{}'".format(path), 5, './')
+    else:
+      return gethtml_bs('Crawling', "Crawling path invalid: '{}' <br>USE EXAMPLE'/crawl?path=.\images'".format(path), 5, './')
+
 @route('/exit')
 def exit():
     print("Exit called")
