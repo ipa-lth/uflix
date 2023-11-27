@@ -258,6 +258,7 @@ def create_album_body(files, index_visible=0, index_hidden=None):
                 <div class="btn-group">
                   <a href="{file['link']}" class="btn btn-sm btn-outline-secondary" role="button">Open</a>
                   <a href="{downloadlink_ext}{file['link']}" class="btn btn-sm btn-outline-secondary" role="button" download>Download</a>
+                  <!--a class="btn btn-sm btn-outline-secondary" id="button{i}" role="button" onclick="copyPathToClip('{file['path']}');">Path to clipboard</a-->
                 </div>
                 <small class="text-muted">{file['path']}</small>
               </div>
@@ -400,6 +401,14 @@ def album():
     $(function() {
       infiniteScrolling.init();
     });
+
+    function copyPathToClip(path) {
+      // Copy the text inside the text field
+      navigator.clipboard.writeText(path);
+
+      // Alert the copied text
+      alert("Copied the text: " + path);
+    }
 </script>
 '''
     return gethtml_bs('Album', content)
