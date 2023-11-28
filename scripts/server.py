@@ -201,10 +201,9 @@ def get_files():
                content)
 
 def image_html(name, path):
-  #'''<img class="card-img-top" src="/image/{0}?path={1}" height="225" focusable="false">'''.format(name, path)
   return '''<picture>
-  <source srcset="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" media="(max-width: 768px)">\
-  <img class="card-img-top" src="/image/{0}?path={1}" height="225" alt="{0}" focusable="false">\
+  <source srcset="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" media="(max-width: 420px)">
+  <img class="card-img-top" src="/image/{0}?path={1}" style="object-fit: contain; min-height: 225px; max-height: 100px; width: auto; max-width: 420px; display: block; margin-left: auto; margin-right: auto;" alt="{0}">
 </picture>'''.format(name, path)
 
 def video_html(name, path, is_hidden=False):
@@ -229,7 +228,6 @@ def send_video(filename):
 def forward_to():
     return gethtml_bs("Redirect", "redirect", 0, 'https://www.schulferien.org/deutschland/feriendichte/2024/')
 
-# Examples
 @route('/image/<filename:re:.*\\.(png|PNG)>')
 def send_image(filename):
     path = request.query.path
@@ -442,7 +440,4 @@ def exit():
     os._exit(0)
     return "<h1>System is shutting down!</h1>"
 
-
-print('starting in:', os.getcwd())
 run(host='0.0.0.0', port=8080, debug=False)
-#run(host='localhost', port=8080, debug=True)
