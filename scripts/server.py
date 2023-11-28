@@ -207,13 +207,13 @@ def image_html(name, path):
   <img class="card-img-top" src="/image/{0}?path={1}" height="225" alt="{0}" focusable="false">\
 </picture>'''.format(name, path)
 
-def video_html(name, path):
-    return '''<video class="w-100" preload="none" height="225" muted controls>\
-  <source src="/file/video/{0}?path={1}" type=\'video/mp4\'>\
-  <source src="/file/video/{0}?path={1}" type=\'video/ogg\'>\
-  <source src="/file/video/{0}?path={1}" type=\'video/webm\'>\
-  Your browser does not support the video tag.\
-</video>'''.format(name, path)
+def video_html(name, path, is_hidden=False):
+    return f'''<video class="w-100" preload="{(lambda x: 'none' if x else 'auto')(is_hidden)}" height="225" muted controls>
+  <source src="/file/video/{name}?path={path}" type=\'video/mp4\'>
+  <source src="/file/video/{name}?path={path}" type=\'video/ogg\'>
+  <source src="/file/video/{name}?path={path}" type=\'video/webm\'>
+  Your browser does not support the video tag.
+</video>'''
 
 @route('/video/<name>')
 def video(name):
@@ -245,14 +245,16 @@ def create_album_body(files, index_visible=0, index_hidden=None):
     html = [f'<div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-3">']
     
     for i, file in enumerate(files):
-        hidden_str = 'visible'
-        if i >= index_hidden: 
+        is_hidden = i >= index_hidden
+        if is_hidden: 
             hidden_str = 'd-none'
+        else:
+            hidden_str = 'visible'
         downloadlink_ext=''
         thumbnail_link=image_html(file['name'], file['path'])
         if file['type'] == 'MP4':
             downloadlink_ext='/file'
-            thumbnail_link=video_html(file['name'], file['path'])
+            thumbnail_link=video_html(file['name'], file['path'], is_hidden)
 
         html.append(f'''
         <div class="col {hidden_str}">
@@ -280,7 +282,7 @@ def create_album_body(files, index_visible=0, index_hidden=None):
 @route('/album')
 def album():
     files = load_or_crawl(_root_folder)
-    body = create_album_body(files, 0, 6)
+    body = create_album_body(files, 0, 12)
     content ='''
 <header>
   <div class="collapse bg-dark" id="navbarHeader">
@@ -368,7 +370,7 @@ def album():
           $loading.remove();
           $('.container .row .d-none').slice(0, Math.min(limit, $('.container .row .d-none').length)).each(function() {
             var $this = $(this);
-            var imgSrc = $this.find('img').attr('src');
+            $this.find('.video').attr('preload', 'auto');
             $this.removeClass('d-none');
             $this.addClass('visible');
           });
