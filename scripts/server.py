@@ -201,10 +201,14 @@ def get_files():
                content)
 
 def image_html(name, path):
-    return '''<img class="card-img-top" src="/image/{0}?path={1}" height="225" focusable="false">'''.format(name, path)
+  #'''<img class="card-img-top" src="/image/{0}?path={1}" height="225" focusable="false">'''.format(name, path)
+  return '''<picture>
+  <source srcset="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" media="(max-width: 768px)">\
+  <img class="card-img-top" src="/image/{0}?path={1}" height="225" alt="{0}" focusable="false">\
+</picture>'''.format(name, path)
 
 def video_html(name, path):
-    return '''<video class="w-100" height="225" muted controls>\
+    return '''<video class="w-100" preload="none" height="225" muted controls>\
   <source src="/file/video/{0}?path={1}" type=\'video/mp4\'>\
   <source src="/file/video/{0}?path={1}" type=\'video/ogg\'>\
   <source src="/file/video/{0}?path={1}" type=\'video/webm\'>\
@@ -262,12 +266,13 @@ def create_album_body(files, index_visible=0, index_hidden=None):
                   <a href="{downloadlink_ext}{file['link']}" class="btn btn-sm btn-outline-secondary" role="button" download>Download</a>
                   <!--a class="btn btn-sm btn-outline-secondary" id="button{i}" role="button" onclick="copyPathToClip('{file['path']}');">Path to clipboard</a-->
                 </div>
-                <small class="text-muted">{file['path']}</small>
+                <small class="text-muted" style="height: 40px; width: 200px; overflow: hidden; text-overflow: ellipsis;" >{(lambda x: "[...]"+x[-45:] if len(x) > 50 else x)(file['path'])}</small>
               </div>
             </div>
           </div>
         </div>
         ''')
+        # Lambda function trims the path if longer than 50 characters
     
     html.append('</div>')
     return ''.join(html)
