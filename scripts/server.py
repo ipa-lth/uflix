@@ -200,14 +200,16 @@ def get_files():
     return gethtml("All files",
                content)
 
+def image_html(name, path):
+    return '''<img class="card-img-top" src="/image/{0}?path={1}" height="225" focusable="false">'''.format(name, path)
+
 def video_html(name, path):
-    return '''
-        <video class="w-100" height="225" muted controls>\
-          <source src="/file/video/{0}?path={1}" type=\'video/mp4\'>\
-          <source src="/file/video/{0}?path={1}" type=\'video/ogg\'>\
-          <source src="/file/video/{0}?path={1}" type=\'video/webm\'>\
-          Your browser does not support the video tag.\
-        </video>'''.format(name, path)
+    return '''<video class="w-100" height="225" muted controls>\
+  <source src="/file/video/{0}?path={1}" type=\'video/mp4\'>\
+  <source src="/file/video/{0}?path={1}" type=\'video/ogg\'>\
+  <source src="/file/video/{0}?path={1}" type=\'video/webm\'>\
+  Your browser does not support the video tag.\
+</video>'''.format(name, path)
 
 @route('/video/<name>')
 def video(name):
@@ -243,7 +245,7 @@ def create_album_body(files, index_visible=0, index_hidden=None):
         if i >= index_hidden: 
             hidden_str = 'd-none'
         downloadlink_ext=''
-        thumbnail_link=f'''<img class="card-img-top" src="{file['link']}" height="225" focusable="false">'''
+        thumbnail_link=image_html(file['name'], file['path'])
         if file['type'] == 'MP4':
             downloadlink_ext='/file'
             thumbnail_link=video_html(file['name'], file['path'])
