@@ -370,7 +370,7 @@ def album():
           $loading.remove();
           $('.container .row .d-none').slice(0, Math.min(limit, $('.container .row .d-none').length)).each(function() {
             var $this = $(this);
-            $this.find('.video').attr('preload', 'auto');
+            $this.find('video').attr('preload', 'auto');
             $this.removeClass('d-none');
             $this.addClass('visible');
           });
@@ -387,7 +387,7 @@ def album():
       }
 
       function scrollController() {
-        if ( ($(window).height() + $(window).scrollTop()) >= ($('header').height() + $('#functional-header').height() + $('#visible-album').height()) && $('.container .row .d-none').length > 0) {
+        if ( ($(window).height() + $(window).scrollTop() + 200) >= ($('header').height() + $('#functional-header').height() + $('#visible-album').height()) && $('.container .row .d-none').length > 0) {
           loadMore();
         }
       }
